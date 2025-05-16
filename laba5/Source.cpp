@@ -184,42 +184,85 @@ void display() {
     glutSwapBuffers();
 }
 
+//void generateConvexPolygon()
+//{
+//    const float MIN_LENGTH = 1;
+//    const float MAX_LENGTH = 2;
+//    const float MIN_ANGLE = PI / 10;
+//    const float MAX_ANGLE = PI / 2;
+//
+//    const float MAX_X = 6;
+//    const float MIN_X = 4;
+//    const float MIN_Y = 0;
+//    const float MAX_Y = 5;
+//
+//    polygon.clear();
+//    polygon.push_back(Point(
+//        rand() / (float)RAND_MAX * (MAX_X - MIN_X) + MIN_X,
+//        rand() / (float)RAND_MAX * (MAX_Y - MIN_Y) + MIN_Y
+//    ));
+//
+//    float fi = rand() / (float)RAND_MAX * (MAX_ANGLE - MIN_ANGLE) + MIN_ANGLE;
+//    float r = rand() / (float)RAND_MAX * (MAX_LENGTH - MIN_LENGTH) + MIN_LENGTH;
+//
+//    polygon.push_back(polygon[0] + Point(r * cos(fi), r * sin(fi)));
+//
+//    while (true)
+//    {
+//        fi += rand() / (float)RAND_MAX * (MAX_ANGLE - MIN_ANGLE) + MIN_ANGLE;
+//        r = rand() / (float)RAND_MAX * (MAX_LENGTH - MIN_LENGTH) + MIN_LENGTH;
+//
+//        Point randPoint = Point(r * cos(fi), r * sin(fi));
+//
+//        Point v1 = poin.front() - points.back();
+//        Vec2 v2 = points[1] - points.front();
+//        if ((points.size() > 2) && (dot(randPoint - v1, Vec2(-v1.getY(), v1.getX())) > 0) || (dot(randPoint - v1, Vec2(-v2.getY(), v2.getX())) < 0))
+//        {
+//            points.push_back(points.front());
+//            return;
+//        }
+//        points.push_back(points.back() + randPoint);
+//    }
+//}
+
+
 void generation() {
     double maxstep = 2.0;
     double minstep = 1.0;
-    double maxangle = PI;
+    double maxangle = PI * 0.5;
     double minangle = PI * 0.125;
     double angle = 0.0;
     double dangle = 0.0;
     double step = 0.0;
+    double dstep = 0.0;
     polygon = vector<Point>();
-    Point first = Point(random(2.0, 7.0), random(2.0, 7.0));
+    Point first = Point(random(3.0, 6.0), random(3.0, 6.0));
     polygon.push_back(first);
-    dangle = random(0.0, PI);
-    step = random(minstep, maxstep);
-    Point second = Point(first.x + step * cos(dangle), first.y + step * sin(dangle));
+    dangle = random(minangle, maxangle);
+    dstep = random(minstep, maxstep);
     angle += dangle;
+    Point second = Point(first.x + dstep * cos(angle), first.y + dstep * sin(angle));
     polygon.push_back(second);
     num = 2;
     Point prev1 = second, prev2 = first;
-    bool finished = false;
-    while (!finished) {
+    while (true) {
         dangle = random(minangle, maxangle);
-        step = random(minstep, maxstep);
+        dstep = random(minstep, maxstep);
         angle += dangle;
-        double x = prev1.x + step * cos(angle);
-        double y = prev1.y + step * sin(angle);
+        double x = prev1.x + dstep * cos(angle);
+        double y = prev1.y + dstep * sin(angle);
         Point point = Point(x, y);
-        if (pseu(Edge(first, second), Edge(first, point)) >= 0.0) {
-            finished = true;
+        if (pseu(Edge(first, second), Edge(first, point)) < 0.0 or pseu(Edge(first, prev1), Edge(first, point)) < 0.0) {
             polygon.push_back(first);
+            num++;
+            break;
         }
         else {
             polygon.push_back(point);
+            num++;
+            prev2 = prev1;
+            prev1 = point;
         }
-        num++;
-        prev2 = prev1;
-        prev1 = point;
     }
 }
 
@@ -259,17 +302,23 @@ bool isvisible(Point begin, Point end, Point* resultBegin, Point* resultEnd) {
 }
 
 void addPoint(Point point) {
-    invisible.push_back(point);
-    invis++;
-    answer = false;
-    if (invis % 2 == 0) {
-        Point prev = invisible[invis - 2];
-        Point temp1, temp2;
-        answer = isvisible(prev, point, &temp1, &temp2);
-        if (answer) {
-            visible.push_back(temp1);
-            visible.push_back(temp2);
-            vis += 2;
+    if (!paused) {
+        invisible.push_back(point);
+        invis++;
+        answer = false;
+        if (invis % 2 == 0) {
+            Point prev = invisible[invis - 2];
+            Point temp1, temp2;
+            answer = isvisible(prev, point, &temp1, &temp2);
+            if (answer) {
+                visible.push_back(temp1);
+                visible.push_back(temp2);
+                vis += 2;
+                score += 100;
+            }
+            else {
+                score -= 50;
+            }
         }
     }
 }
@@ -303,15 +352,6 @@ void gameInit() {
 
 void gameContinue() {
     currentTime = clock();
-}
-
-void showResults() {
-    if (!scoreChanged) {
-        if (answer) {
-            score += 100;
-        }
-        scoreChanged = true;
-    }
 }
 
 void gameplay() {
@@ -383,6 +423,7 @@ void init(void) {
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
     init();
+    gameInit();
     glutDisplayFunc(display);
     glutMouseFunc(mouse);
     glutKeyboardFunc(keyboard);
